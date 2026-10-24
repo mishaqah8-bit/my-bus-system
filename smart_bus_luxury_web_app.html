@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Bus Luxury Reservation System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"Space Grotesk"', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#070B14',
+                            card: 'rgba(15, 23, 42, 0.75)',
+                            cyan: '#00F0FF',
+                            emerald: '#10B981',
+                            amber: '#F59E0B',
+                            purple: '#8B5CF6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #060911;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #E2E8F0;
+        }
+
+        .glass-panel {
+            background: rgba(13, 20, 36, 0.72);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        .glass-panel-glow {
+            background: rgba(15, 25, 48, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+        }
+
+        .glow-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Bus Seat Grid custom styling */
+        .seat {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+        .seat.available:hover {
+            transform: scale(1.12);
+            border-color: #00F0FF;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+        .seat.selected {
+            background: linear-gradient(135deg, #00F0FF, #3B82F6);
+            color: #000;
+            border-color: #00F0FF;
+            box-shadow: 0 0 14px rgba(0, 240, 255, 0.7);
+        }
+        .seat.occupied {
+            background: #1e293b;
+            color: #64748b;
+            border-color: #334155;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Boarding pass ticket tear effect */
+        .ticket-cutout-left, .ticket-cutout-right {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: #060911;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .ticket-cutout-left { left: -12px; }
+        .ticket-cutout-right { right: -12px; }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 240, 255, 0.25);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 240, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+
+    <!-- Top Status Bar -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-white/10 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Logo & Brand -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('routes')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-black font-bold text-lg shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-bus text-slate-950"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        SMART BUS <span class="text-[10px] uppercase font-mono tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">VVIP LUXURY</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Autonomous Coach & Transit Network</p>
+                </div>
+            </div>
+
+            <!-- Quick Live Stats -->
+            <div class="flex items-center gap-6 text-xs font-mono">
+                <div class="hidden sm:flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-white/5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-400">Network:</span>
+                    <span class="text-emerald-400 font-bold" id="topActiveRoutes">5 Active Routes</span>
+                </div>
+                <div class="hidden md:flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-white/5">
+                    <i class="fa-solid fa-chair text-cyan-400"></i>
+                    <span class="text-slate-400">Total Capacity:</span>
+                    <span class="text-cyan-400 font-bold" id="topCapacity">183 Seats</span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-white/5 text-slate-300">
+                    <i class="fa-regular fa-clock text-amber-400"></i>
+                    <span id="liveClock">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation Bar -->
+    <nav class="glass-panel border-b border-white/5 sticky top-[65px] z-30 px-4 lg:px-8 py-2">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <button onclick="switchTab('routes')" id="nav-routes" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 transition-all">
+                <i class="fa-solid fa-map-location-dot"></i> Available Routes
+            </button>
+            <button onclick="switchTab('search')" id="nav-search" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fa-solid fa-magnifying-glass"></i> Search
+            </button>
+            <button onclick="switchTab('booking')" id="nav-booking" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fa-solid fa-ticket"></i> Book Ticket
+            </button>
+            <button onclick="switchTab('mybookings')" id="nav-mybookings" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fa-solid fa-receipt"></i> My Bookings
+                <span id="bookingCountBadge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-500/20 text-cyan-300 ml-1">0</span>
+            </button>
+            <button onclick="switchTab('availability')" id="nav-availability" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fa-solid fa-couch"></i> Seat Map
+            </button>
+            <button onclick="switchTab('schedules')" id="nav-schedules" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fa-solid fa-calendar-days"></i> City Schedules
+            </button>
+            <button onclick="switchTab('reports')" id="nav-reports" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fa-solid fa-chart-line"></i> Analytics & Report
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main App Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: AVAILABLE ROUTES -->
+        <section id="tab-routes" class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                        <span>Luxury Fleet Journeys</span>
+                        <span class="text-xs font-mono font-normal px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">PRD FEATURE 1-3</span>
+                    </h2>
+                    <p class="text-sm text-slate-400">Executive high-speed express routes connecting key hubs</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('booking')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/25 flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-plus"></i> Instant Reservation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Route Cards Grid -->
+            <div id="routeCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Dynamically rendered -->
+            </div>
+
+            <!-- Full Specification Table View -->
+            <div class="glass-panel rounded-2xl p-6 border border-white/5">
+                <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-cyan-400"></i> Master Schedule Manifest
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="text-xs uppercase font-mono text-slate-400 bg-slate-900/50 border-b border-white/5">
+                            <tr>
+                                <th class="p-3">Route ID</th>
+                                <th class="p-3">Journey Route</th>
+                                <th class="p-3">Departure</th>
+                                <th class="p-3">Fare (PKR)</th>
+                                <th class="p-3">Seat Status</th>
+                                <th class="p-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="masterRouteTable" class="divide-y divide-white/5">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: SEARCH FOR A ROUTE -->
+        <section id="tab-search" class="space-y-6 hidden">
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 border border-white/10">
+                <div class="max-w-2xl mx-auto text-center space-y-3">
+                    <div class="inline-flex p-3 rounded-2xl bg-cyan-500/10 text-cyan-400 text-2xl">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Route & Destination Radar</h2>
+                    <p class="text-sm text-slate-400">Instant lookup by Route ID (e.g., R101) or Departure / Destination city (e.g., Hyderabad, Sukkur, Karachi)</p>
+
+                    <div class="relative mt-6">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="routeSearchInput" oninput="executeRouteSearch()" placeholder="Type City (Karachi, Hyderabad...) or ID (R101, R104)..." 
+                            class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-sm font-medium">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results Display Area -->
+            <div id="searchResultsContainer" class="space-y-4">
+                <div class="text-center py-12 text-slate-500 font-mono text-sm">
+                    Enter a query above to see live matching services.
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: BOOK A TICKET & LUXURY SEAT MAP PICKER -->
+        <section id="tab-booking" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left: Booking Form -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="glass-panel rounded-2xl p-6 sm:p-8 border border-white/10 space-y-5">
+                        <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-id-card text-cyan-400"></i> Passenger Details & Itinerary
+                                </h2>
+                                <p class="text-xs text-slate-400">BR-01 to BR-08 Validated Reservation Pipeline</p>
+                            </div>
+                            <span class="text-xs font-mono px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Step 1 of 2</span>
+                        </div>
+
+                        <!-- Form Fields -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-1.5">Passenger Full Name *</label>
+                                <input type="text" id="bookingName" placeholder="e.g. Ahmed Raza" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-cyan-400 text-sm">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-1.5">Passenger Age *</label>
+                                    <input type="number" id="bookingAge" min="1" max="120" value="26" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-cyan-400 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-1.5">Select Route *</label>
+                                    <select id="bookingRouteSelect" onchange="handleRouteSelectChange()" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white focus:outline-none focus:border-cyan-400 text-sm">
+                                        <!-- Options populated by JS -->
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Seat Indicator -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-mono uppercase tracking-wider text-slate-400">Selected Seats: <span id="selectedSeatBadges" class="text-cyan-400 font-bold">None</span></label>
+                                    <button type="button" onclick="clearSeatSelections()" class="text-xs text-slate-500 hover:text-cyan-400 underline">Reset Seats</button>
+                                </div>
+                                <p class="text-xs text-slate-500">Pick seats on the Coach Map on the right, or enter seat quantity manually below:</p>
+                                <div class="mt-2 flex items-center gap-3">
+                                    <input type="number" id="bookingSeatQuantity" min="1" max="10" value="1" onchange="syncManualSeatQty()" class="w-32 px-4 py-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-white font-mono text-sm">
+                                    <span class="text-xs text-slate-400">Seat(s) automatically synchronized with map</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Price Breakdown Card -->
+                        <div class="p-4 rounded-xl bg-slate-950/70 border border-white/5 space-y-2.5 text-xs font-mono">
+                            <div class="flex justify-between text-slate-400">
+                                <span>Ticket Price Per Seat:</span>
+                                <span id="summaryFarePerSeat" class="text-white">Rs. 1,200</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>Subtotal (<span id="summarySeatsCount">1</span> seat):</span>
+                                <span id="summarySubtotal" class="text-white">Rs. 1,200</span>
+                            </div>
+                            <div id="discountRow" class="flex justify-between text-emerald-400 hidden">
+                                <span>Group Discount (10% on 4+ seats):</span>
+                                <span id="summaryDiscount">-Rs. 0</span>
+                            </div>
+                            <div class="pt-2 border-t border-white/10 flex justify-between text-sm font-bold text-white">
+                                <span>Total Payable Fare:</span>
+                                <span id="summaryTotalFare" class="text-cyan-400 text-base">Rs. 1,200</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Submit -->
+                        <button type="button" onclick="processTicketBooking()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-500 text-slate-950 font-extrabold text-sm tracking-wide shadow-xl shadow-cyan-500/20 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-lock"></i> AUTHORIZE & CONFIRM RESERVATION
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Visual Luxury Bus Coach Seat Map -->
+                <div class="lg:col-span-5">
+                    <div class="glass-panel rounded-2xl p-6 border border-white/10 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-couch text-cyan-400"></i>
+                                <h3 class="text-sm font-bold text-white uppercase font-mono tracking-wider">Coach Deck Seat Map</h3>
+                            </div>
+                            <span id="seatMapRouteLabel" class="text-xs text-slate-400 font-mono">R101</span>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 px-2 py-1.5 bg-slate-900/50 rounded-lg">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-800 border border-slate-600"></span> Open</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-cyan-400"></span> Selected</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-950 border border-slate-800 opacity-60"></span> Reserved</span>
+                        </div>
+
+                        <!-- Physical Bus Coach Shell -->
+                        <div class="relative max-w-[280px] mx-auto bg-slate-950/90 rounded-3xl p-4 border-2 border-slate-800 shadow-2xl">
+                            <!-- Windshield / Driver cockpit -->
+                            <div class="w-full py-2 bg-slate-900/90 rounded-t-xl mb-4 text-center border-b border-white/5 flex items-center justify-between px-3 text-xs text-slate-500 font-mono">
+                                <span><i class="fa-solid fa-door-open"></i> ENTRANCE</span>
+                                <span><i class="fa-solid fa-dharmachakra animate-spin-slow"></i> DRIVER</span>
+                            </div>
+
+                            <!-- 2 x 2 Seat Matrix Container -->
+                            <div id="coachSeatGrid" class="grid grid-cols-4 gap-2 text-center text-xs font-mono">
+                                <!-- Generated Dynamically -->
+                            </div>
+
+                            <!-- Coach Rear -->
+                            <div class="mt-4 pt-2 border-t border-slate-800 text-center text-[10px] text-slate-600 font-mono uppercase tracking-widest">
+                                Rear Engine Bay • Luggage Space
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 4: MY BOOKINGS & ONE-CLICK CANCELLATION -->
+        <section id="tab-mybookings" class="space-y-6 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-receipt text-cyan-400"></i>
+                        <span>Passenger Reservations & History</span>
+                    </h2>
+                    <p class="text-sm text-slate-400">Inspect confirmed active passes or securely cancel with 1-click seat restoration</p>
+                </div>
+
+                <!-- Instant ID Cancel Box -->
+                <div class="flex items-center gap-2 bg-slate-900/70 p-1.5 rounded-xl border border-white/10">
+                    <input type="text" id="quickCancelInput" placeholder="Enter Booking ID (B1001)..." class="bg-transparent px-3 py-1.5 text-xs text-white uppercase font-mono focus:outline-none">
+                    <button onclick="handleQuickCancel()" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold rounded-lg border border-red-500/30 transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bookings List Container -->
+            <div id="bookingsListContainer" class="space-y-4">
+                <!-- Dynamically Rendered -->
+            </div>
+        </section>
+
+        <!-- TAB 5: SEAT AVAILABILITY DEEP DIVE -->
+        <section id="tab-availability" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-chair text-emerald-400"></i> Real-Time Coach Capacity Tracker
+                </h2>
+                <p class="text-sm text-slate-400">Live seat inventory synchronized across all 5 operational routes</p>
+            </div>
+
+            <div id="capacityCardList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Populated via JS -->
+            </div>
+        </section>
+
+        <!-- TAB 6: CITY SCHEDULES -->
+        <section id="tab-schedules" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-city text-amber-400"></i> Route Schedule by Departure City
+                </h2>
+                <p class="text-sm text-slate-400">PRD Feature 10: Nested city dispatch tables for Karachi, Hyderabad, Sukkur, Mirpur Khas, Lahore</p>
+            </div>
+
+            <div id="citySchedulesContainer" class="space-y-5">
+                <!-- Populated via JS with nested city groupings -->
+            </div>
+        </section>
+
+        <!-- TAB 7: REPORTS & EXECUTIVE ANALYTICS -->
+        <section id="tab-reports" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-cyan-400"></i> Executive Performance & Audit Report
+                </h2>
+                <p class="text-sm text-slate-400">Financial revenue calculations excluding cancelled tickets (PRD BR-12 & Feature 9)</p>
+            </div>
+
+            <!-- KPI Metric Cards Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div class="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p class="text-xs font-mono text-slate-400">Total Bookings</p>
+                    <p id="kpiTotalCreated" class="text-2xl font-bold text-white font-mono">0</p>
+                    <span class="text-[10px] text-slate-500">All records created</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p class="text-xs font-mono text-slate-400">Confirmed Bookings</p>
+                    <p id="kpiConfirmed" class="text-2xl font-bold text-cyan-400 font-mono">0</p>
+                    <span class="text-[10px] text-cyan-400/80">Active tickets</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p class="text-xs font-mono text-slate-400">Cancelled Passes</p>
+                    <p id="kpiCancelled" class="text-2xl font-bold text-red-400 font-mono">0</p>
+                    <span class="text-[10px] text-red-400/80">Seats restored once</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p class="text-xs font-mono text-slate-400">Seats Reserved</p>
+                    <p id="kpiReservedSeats" class="text-2xl font-bold text-emerald-400 font-mono">0</p>
+                    <span class="text-[10px] text-slate-500">Confirmed seats sum</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p class="text-xs font-mono text-slate-400">Confirmed Revenue</p>
+                    <p id="kpiRevenue" class="text-xl font-bold text-amber-400 font-mono">Rs. 0</p>
+                    <span class="text-[10px] text-amber-400/80">Excludes cancelled</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
+                    <p class="text-xs font-mono text-slate-400">Full Coach Routes</p>
+                    <p id="kpiFullyBooked" class="text-2xl font-bold text-purple-400 font-mono">0</p>
+                    <span class="text-[10px] text-slate-500">0 seats remaining</span>
+                </div>
+            </div>
+
+            <!-- Revenue Share Visual Bar -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/10 space-y-4">
+                <h3 class="text-sm font-bold font-mono uppercase tracking-wider text-white">Route Revenue Contribution</h3>
+                <div id="revenueBreakdownBars" class="space-y-3">
+                    <!-- Injected bars -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Boarding Pass Receipt Slip -->
+    <div id="ticketModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="relative w-full max-w-lg glass-panel-glow rounded-3xl p-6 sm:p-8 overflow-hidden animate-scale-up">
+            
+            <!-- Cutout notches -->
+            <div class="ticket-cutout-left"></div>
+            <div class="ticket-cutout-right"></div>
+
+            <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bus text-cyan-400 text-xl"></i>
+                    <div>
+                        <h4 class="text-base font-bold text-white tracking-wide">OFFICIAL BOARDING PASS</h4>
+                        <p class="text-[10px] font-mono text-cyan-300">Smart Bus Luxury Reservation Network</p>
+                    </div>
+                </div>
+                <button onclick="closeTicketModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Ticket Details Content -->
+            <div id="modalTicketBody" class="space-y-4">
+                <!-- Dynamically Injected -->
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-mono border border-white/10 flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> Print Voucher
+                </button>
+                <button onclick="closeTicketModal()" class="px-6 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application Script Logic -->
+    <script>
+        /**
+         * SMART BUS LUXURY RESERVATION SYSTEM
+         * Compliant with PRD BR-01 to BR-15
+         */
+
+        // 1. Data Models
+        const SUPPORTED_CITIES = ["Karachi", "Hyderabad", "Sukkur", "Mirpur Khas", "Lahore"];
+
+        let routes = [
+            {
+                route_id: "R101",
+                departure_city: "Karachi",
+                destination_city: "Hyderabad",
+                departure_time: "08:00 AM",
+                ticket_price: 1200,
+                total_seats: 40,
+                available_seats: 40,
+                amenities: ["Free Wi-Fi", "USB Charging", "AC Executive"]
+            },
+            {
+                route_id: "R102",
+                departure_city: "Karachi",
+                destination_city: "Sukkur",
+                departure_time: "09:30 AM",
+                ticket_price: 2000,
+                total_seats: 36,
+                available_seats: 36,
+                amenities: ["Complimentary Snack", "Recliner Seats", "Restroom"]
+            },
+            {
+                route_id: "R103",
+                departure_city: "Hyderabad",
+                destination_city: "Mirpur Khas",
+                departure_time: "11:00 AM",
+                ticket_price: 800,
+                total_seats: 32,
+                available_seats: 32,
+                amenities: ["AC Express", "Filtered Water"]
+            },
+            {
+                route_id: "R104",
+                departure_city: "Karachi",
+                destination_city: "Lahore",
+                departure_time: "07:00 PM",
+                ticket_price: 5000,
+                total_seats: 45,
+                available_seats: 45,
+                amenities: ["Sleeper Berth", "Hot Meal", "Blanket & Pillow", "Wi-Fi"]
+            },
+            {
+                route_id: "R105",
+                departure_city: "Sukkur",
+                destination_city: "Hyderabad",
+                departure_time: "02:00 PM",
+                ticket_price: 1500,
+                total_seats: 30,
+                available_seats: 30,
+                amenities: ["AC Executive", "Beverage Service"]
+            }
+        ];
+
+        let bookings = [];
+        let booking_ids = new Set();
+        let booking_counter = 1001;
+
+        // Current active seat selections for the booking form
+        let activeSelectedSeats = [];
+
+        // 2. Lifecycle Initializer
+        window.onload = function() {
+            startClock();
+            renderRouteCards();
+            renderMasterTable();
+            populateRouteDropdown();
+            renderCoachSeatGrid();
+            updateTopStats();
+            renderBookingsList();
+            renderCapacityCards();
+            renderCitySchedules();
+            renderAnalytics();
+        };
+
+        // Real-time Clock
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+            }, 1000);
+        }
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            const tabs = ['routes', 'search', 'booking', 'mybookings', 'availability', 'schedules', 'reports'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    el.classList.remove('hidden');
+                    btn.classList.add('bg-cyan-500/15', 'text-cyan-300', 'border', 'border-cyan-500/30');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    el.classList.add('hidden');
+                    btn.classList.remove('bg-cyan-500/15', 'text-cyan-300', 'border', 'border-cyan-500/30');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            if (tabId === 'availability') renderCapacityCards();
+            if (tabId === 'schedules') renderCitySchedules();
+            if (tabId === 'reports') renderAnalytics();
+            if (tabId === 'mybookings') renderBookingsList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Render Route Cards
+        function renderRouteCards() {
+            const container = document.getElementById('routeCardsGrid');
+            container.innerHTML = routes.map(r => {
+                const isFull = r.available_seats === 0;
+                const statusBadge = isFull 
+                    ? '<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/30">Fully Booked</span>'
+                    : r.available_seats === r.total_seats 
+                        ? '<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Available</span>'
+                        : '<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30">Partially Booked</span>';
+
+                return `
+                <div class="glass-panel rounded-2xl p-5 border border-white/5 hover:border-cyan-500/30 transition-all flex flex-col justify-between group">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono font-bold text-cyan-400 tracking-wider">${r.route_id}</span>
+                            ${statusBadge}
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 text-base font-bold text-white">
+                                <span>${r.departure_city}</span>
+                                <i class="fa-solid fa-arrow-right text-xs text-cyan-400 group-hover:translate-x-1 transition-transform"></i>
+                                <span>${r.destination_city}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 flex items-center gap-2">
+                                <i class="fa-regular fa-clock text-cyan-400"></i> Departs ${r.departure_time}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            ${r.amenities.map(a => `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 text-slate-400 border border-white/5">${a}</span>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="pt-4 mt-4 border-t border-white/5 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-mono text-slate-500 uppercase">Single Seat</span>
+                            <p class="text-lg font-bold text-white font-mono">Rs. ${r.ticket_price.toLocaleString()}</p>
+                        </div>
+                        <button onclick="selectRouteForBooking('${r.route_id}')" ${isFull ? 'disabled' : ''} class="px-4 py-2 rounded-xl text-xs font-bold transition-all ${isFull ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-cyan-500/10 hover:bg-cyan-500 hover:text-black text-cyan-400 border border-cyan-500/30'}">
+                            ${isFull ? 'Sold Out' : 'Book Seat'}
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Render Master Route Table
+        function renderMasterTable() {
+            const tbody = document.getElementById('masterRouteTable');
+            tbody.innerHTML = routes.map(r => `
+                <tr class="hover:bg-white/[0.02]">
+                    <td class="p-3 font-mono font-bold text-cyan-400">${r.route_id}</td>
+                    <td class="p-3 font-medium text-white">${r.departure_city} ➔ ${r.destination_city}</td>
+                    <td class="p-3 text-slate-400">${r.departure_time}</td>
+                    <td class="p-3 font-mono">Rs. ${r.ticket_price.toLocaleString()}</td>
+                    <td class="p-3">
+                        <span class="text-xs font-mono ${r.available_seats === 0 ? 'text-red-400' : 'text-emerald-400'}">
+                            ${r.available_seats} / ${r.total_seats} Left
+                        </span>
+                    </td>
+                    <td class="p-3 text-right">
+                        <button onclick="selectRouteForBooking('${r.route_id}')" ${r.available_seats === 0 ? 'disabled' : ''} class="px-3 py-1 text-xs rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500 hover:text-black disabled:opacity-30">
+                            Select
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Populate Booking Route Dropdown
+        function populateRouteDropdown() {
+            const select = document.getElementById('bookingRouteSelect');
+            select.innerHTML = routes.map(r => `
+                <option value="${r.route_id}">${r.route_id} : ${r.departure_city} ➔ ${r.destination_city} (Rs. ${r.ticket_price} - ${r.available_seats} left)</option>
+            `).join('');
+            handleRouteSelectChange();
+        }
+
+        // Trigger route booking from external tabs
+        function selectRouteForBooking(routeId) {
+            document.getElementById('bookingRouteSelect').value = routeId;
+            handleRouteSelectChange();
+            switchTab('booking');
+        }
+
+        // Route selection change callback
+        function handleRouteSelectChange() {
+            const routeId = document.getElementById('bookingRouteSelect').value;
+            const route = routes.find(r => r.route_id === routeId);
+            if (!route) return;
+
+            document.getElementById('seatMapRouteLabel').innerText = `${route.route_id} (${route.departure_city} -> ${route.destination_city})`;
+            clearSeatSelections();
+            renderCoachSeatGrid();
+            recalculateBookingFare();
+        }
+
+        // Render Physical Bus Coach Layout
+        function renderCoachSeatGrid() {
+            const routeId = document.getElementById('bookingRouteSelect').value;
+            const route = routes.find(r => r.route_id === routeId) || routes[0];
+            const grid = document.getElementById('coachSeatGrid');
+            grid.innerHTML = '';
+
+            const total = route.total_seats;
+            const available = route.available_seats;
+            const occupiedCount = total - available;
+
+            for (let i = 1; i <= total; i++) {
+                const seatNum = `S${i < 10 ? '0' + i : i}`;
+                // deterministic occupied simulation for visual representation
+                const isOccupied = i <= occupiedCount;
+                const isSelected = activeSelectedSeats.includes(seatNum);
+
+                const seatBtn = document.createElement('div');
+                seatBtn.className = `seat p-2 rounded-lg border text-[11px] font-mono cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                    isOccupied 
+                        ? 'occupied' 
+                        : isSelected 
+                            ? 'selected' 
+                            : 'available bg-slate-900 border-white/10 text-slate-300'
+                }`;
+
+                seatBtn.innerHTML = `
+                    <i class="fa-solid fa-chair text-xs"></i>
+                    <span>${seatNum}</span>
+                `;
+
+                if (!isOccupied) {
+                    seatBtn.onclick = () => toggleSeatSelection(seatNum);
+                }
+
+                grid.appendChild(seatBtn);
+            }
+        }
+
+        // Toggle interactive seat selection
+        function toggleSeatSelection(seatNumber) {
+            const routeId = document.getElementById('bookingRouteSelect').value;
+            const route = routes.find(r => r.route_id === routeId);
+            
+            const index = activeSelectedSeats.indexOf(seatNumber);
+            if (index > -1) {
+                activeSelectedSeats.splice(index, 1);
+            } else {
+                if (activeSelectedSeats.length >= route.available_seats) {
+                    showToast(`Cannot select more than ${route.available_seats} remaining seats!`, 'error');
+                    return;
+                }
+                activeSelectedSeats.push(seatNumber);
+            }
+
+            document.getElementById('bookingSeatQuantity').value = Math.max(1, activeSelectedSeats.length);
+            updateSeatBadgesDisplay();
+            renderCoachSeatGrid();
+            recalculateBookingFare();
+        }
+
+        function updateSeatBadgesDisplay() {
+            const badgeEl = document.getElementById('selectedSeatBadges');
+            if (activeSelectedSeats.length === 0) {
+                badgeEl.innerText = "Auto-Allocated";
+                badgeEl.className = "text-slate-500 font-mono";
+            } else {
+                badgeEl.innerText = activeSelectedSeats.join(', ');
+                badgeEl.className = "text-cyan-400 font-bold font-mono";
+            }
+        }
+
+        function clearSeatSelections() {
+            activeSelectedSeats = [];
+            updateSeatBadgesDisplay();
+            renderCoachSeatGrid();
+            recalculateBookingFare();
+        }
+
+        function syncManualSeatQty() {
+            const inputVal = parseInt(document.getElementById('bookingSeatQuantity').value) || 1;
+            recalculateBookingFare();
+        }
+
+        // Fare Calculator with 10% Group Discount on 4+ seats
+        function recalculateBookingFare() {
+            const routeId = document.getElementById('bookingRouteSelect').value;
+            const route = routes.find(r => r.route_id === routeId);
+            if (!route) return;
+
+            let qty = parseInt(document.getElementById('bookingSeatQuantity').value) || 1;
+            if (qty < 1) qty = 1;
+
+            const basePrice = route.ticket_price;
+            const subtotal = qty * basePrice;
+            const isDiscounted = qty >= 4;
+            const discount = isDiscounted ? (0.10 * subtotal) : 0;
+            const totalFare = subtotal - discount;
+
+            document.getElementById('summaryFarePerSeat').innerText = `Rs. ${basePrice.toLocaleString()}`;
+            document.getElementById('summarySeatsCount').innerText = qty;
+            document.getElementById('summarySubtotal').innerText = `Rs. ${subtotal.toLocaleString()}`;
+            
+            const discountRow = document.getElementById('discountRow');
+            if (isDiscounted) {
+                discountRow.classList.remove('hidden');
+                document.getElementById('summaryDiscount').innerText = `-Rs. ${discount.toLocaleString()}`;
+            } else {
+                discountRow.classList.add('hidden');
+            }
+
+            document.getElementById('summaryTotalFare').innerText = `Rs. ${totalFare.toLocaleString()}`;
+        }
+
+        // Execute Booking Form Submission (BR-01 to BR-08)
+        function processTicketBooking() {
+            const nameInput = document.getElementById('bookingName').value.trim();
+            const ageInput = parseInt(document.getElementById('bookingAge').value);
+            const routeId = document.getElementById('bookingRouteSelect').value;
+            const route = routes.find(r => r.route_id === routeId);
+            let seatsRequested = parseInt(document.getElementById('bookingSeatQuantity').value);
+
+            // BR-01: Name validation
+            if (!nameInput) {
+                showToast("BR-01 Error: Passenger name cannot be blank!", "error");
+                document.getElementById('bookingName').focus();
+                return;
+            }
+
+            // BR-02: Age validation
+            if (isNaN(ageInput) || ageInput <= 0) {
+                showToast("BR-02 Error: Age must be a positive integer!", "error");
+                document.getElementById('bookingAge').focus();
+                return;
+            }
+
+            // BR-03: Route validation
+            if (!route) {
+                showToast("BR-03 Error: Specified Route does not exist!", "error");
+                return;
+            }
+
+            // BR-04: Seat quantity positive validation
+            if (isNaN(seatsRequested) || seatsRequested <= 0) {
+                showToast("BR-04 Error: Seat quantity must be greater than zero!", "error");
+                return;
+            }
+
+            // BR-05: Availability check
+            if (seatsRequested > route.available_seats) {
+                showToast(`BR-05 Error: Request exceeds available capacity! Only ${route.available_seats} seats remaining.`, "error");
+                return;
+            }
+
+            // BR-06: Unique Booking ID from Set
+            let newBookingId = `B${booking_counter}`;
+            while (booking_ids.has(newBookingId)) {
+                booking_counter++;
+                newBookingId = `B${booking_counter}`;
+            }
+            booking_ids.add(newBookingId);
+            booking_counter++;
+
+            // BR-07: Fare calculation with discount rule
+            const subtotal = seatsRequested * route.ticket_price;
+            const discount = seatsRequested >= 4 ? 0.10 * subtotal : 0;
+            const totalFare = subtotal - discount;
+
+            // BR-08: Decrement seats after checks pass
+            route.available_seats -= seatsRequested;
+
+            // Resolve allocated seat numbers
+            let seatLabels = [...activeSelectedSeats];
+            while (seatLabels.length < seatsRequested) {
+                seatLabels.push(`S${seatLabels.length + 1}`);
+            }
+
+            // Store Record
+            const bookingRecord = {
+                booking_id: newBookingId,
+                passenger_name: nameInput,
+                passenger_age: ageInput,
+                route_id: route.route_id,
+                journey: `${route.departure_city} ➔ ${route.destination_city}`,
+                seats: seatsRequested,
+                seat_numbers: seatLabels.slice(0, seatsRequested),
+                fare_per_seat: route.ticket_price,
+                discount_applied: discount,
+                total_fare: totalFare,
+                status: "Confirmed",
+                timestamp: new Date().toLocaleString()
+            };
+
+            bookings.unshift(bookingRecord);
+
+            // Clean form & show feedback
+            showToast(`Success! Booking ${newBookingId} Confirmed.`, "success");
+            openBoardingPassModal(bookingRecord);
+
+            clearSeatSelections();
+            document.getElementById('bookingName').value = '';
+            document.getElementById('bookingSeatQuantity').value = '1';
+
+            // Refresh UI
+            renderRouteCards();
+            renderMasterTable();
+            populateRouteDropdown();
+            updateTopStats();
+            renderBookingsList();
+            renderCapacityCards();
+            renderAnalytics();
+        }
+
+        // Open Boarding Pass Modal
+        function openBoardingPassModal(booking) {
+            const body = document.getElementById('modalTicketBody');
+            body.innerHTML = `
+                <div class="p-4 rounded-2xl bg-slate-900/90 border border-white/10 space-y-3 font-mono text-xs">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span class="text-slate-400">BOOKING REFERENCE</span>
+                        <span class="text-lg font-bold text-cyan-400 tracking-wider">${booking.booking_id}</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <span class="text-[10px] text-slate-500 uppercase">Passenger</span>
+                            <p class="font-bold text-white text-sm">${booking.passenger_name}</p>
+                            <span class="text-[10px] text-slate-400">Age: ${booking.passenger_age} yrs</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500 uppercase">Service Route</span>
+                            <p class="font-bold text-cyan-300 text-sm">${booking.journey}</p>
+                            <span class="text-[10px] text-slate-400">${booking.route_id} Express</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 py-2 border-y border-white/5">
+                        <div>
+                            <span class="text-[10px] text-slate-500">Seats Booked</span>
+                            <p class="font-bold text-white">${booking.seats}</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500">Seat IDs</span>
+                            <p class="font-bold text-cyan-400">${booking.seat_numbers.join(', ')}</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500">Status</span>
+                            <p class="font-bold text-emerald-400">CONFIRMED</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1 text-sm font-bold text-white">
+                        <span>Total Paid:</span>
+                        <span class="text-emerald-400 text-base">Rs. ${booking.total_fare.toLocaleString()}</span>
+                    </div>
+
+                    <div class="text-[10px] text-slate-500 text-center pt-2">
+                        Issued at ${booking.timestamp} • Valid for boarding with photo ID
+                    </div>
+                </div>
+            `;
+            document.getElementById('ticketModal').classList.remove('hidden');
+        }
+
+        function closeTicketModal() {
+            document.getElementById('ticketModal').classList.add('hidden');
+        }
+
+        // Render Bookings & Cancellation Management
+        function renderBookingsList() {
+            const container = document.getElementById('bookingsListContainer');
+            document.getElementById('bookingCountBadge').innerText = bookings.length;
+
+            if (bookings.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-12 text-center text-slate-500 font-mono text-sm border border-white/5">
+                        <i class="fa-solid fa-ticket-simple text-4xl mb-3 text-slate-600 block"></i>
+                        No booking records yet. Create a reservation to test the workflow.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = bookings.map(b => {
+                const isConfirmed = b.status === "Confirmed";
+                return `
+                <div class="glass-panel rounded-2xl p-5 border ${isConfirmed ? 'border-white/10' : 'border-red-500/20 opacity-75'} flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-mono font-bold ${isConfirmed ? 'text-cyan-400' : 'text-slate-400'}">${b.booking_id}</span>
+                            <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full ${isConfirmed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}">
+                                ${b.status}
+                            </span>
+                            <span class="text-xs text-slate-500 font-mono">${b.timestamp}</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white">${b.passenger_name} <span class="text-xs font-normal text-slate-400">(${b.passenger_age} yrs)</span></h4>
+                        <p class="text-xs text-slate-300 font-mono">${b.journey} • ${b.seats} Seat(s): <span class="text-cyan-300">${b.seat_numbers.join(', ')}</span></p>
+                    </div>
+
+                    <div class="flex items-center justify-between md:justify-end gap-5">
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-500 font-mono uppercase">Total Fare</span>
+                            <p class="text-base font-bold font-mono ${isConfirmed ? 'text-white' : 'text-slate-500 line-through'}">
+                                Rs. ${b.total_fare.toLocaleString()}
+                            </p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <button onclick='openBoardingPassModal(${JSON.stringify(b)})' class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-mono">
+                                <i class="fa-solid fa-receipt"></i>
+                            </button>
+                            ${isConfirmed ? `
+                                <button onclick="cancelBookingAction('${b.booking_id}')" class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/20 transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-ban"></i> Cancel
+                                </button>
+                            ` : `
+                                <span class="text-xs font-mono text-red-400/80 px-2 py-1 bg-red-950/40 rounded border border-red-900/50">Cancelled & Restored</span>
+                            `}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Cancel Booking Logic (BR-09, BR-10, BR-11)
+        function cancelBookingAction(bookingId) {
+            const booking = bookings.find(b => b.booking_id === bookingId);
+            
+            // BR-09: Must exist & only Confirmed can be cancelled
+            if (!booking) {
+                showToast(`Error: Booking ID '${bookingId}' not found.`, "error");
+                return;
+            }
+            if (booking.status === "Cancelled") {
+                showToast(`BR-09 Error: Booking ${bookingId} is already Cancelled!`, "error");
+                return;
+            }
+
+            // Update status
+            booking.status = "Cancelled";
+
+            // BR-10: Restore seats once to original route
+            const route = routes.find(r => r.route_id === booking.route_id);
+            if (route) {
+                route.available_seats += booking.seats;
+            }
+
+            showToast(`Booking ${bookingId} cancelled! ${booking.seats} seats restored to Route ${booking.route_id}.`, "success");
+
+            // Refresh UI
+            renderRouteCards();
+            renderMasterTable();
+            populateRouteDropdown();
+            renderBookingsList();
+            renderCapacityCards();
+            renderAnalytics();
+            updateTopStats();
+        }
+
+        function handleQuickCancel() {
+            const id = document.getElementById('quickCancelInput').value.trim().toUpperCase();
+            if (!id) {
+                showToast("Please enter a Booking ID to cancel.", "error");
+                return;
+            }
+            cancelBookingAction(id);
+            document.getElementById('quickCancelInput').value = '';
+        }
+
+        // Search Routes (Feature 4 & for-else equivalent logic)
+        function executeRouteSearch() {
+            const query = document.getElementById('routeSearchInput').value.trim().toLowerCase();
+            const container = document.getElementById('searchResultsContainer');
+
+            if (!query) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-500 font-mono text-sm">
+                        Enter a query above to see live matching services.
+                    </div>
+                `;
+                return;
+            }
+
+            const matches = routes.filter(r => 
+                r.route_id.toLowerCase().includes(query) ||
+                r.departure_city.toLowerCase().includes(query) ||
+                r.destination_city.toLowerCase().includes(query)
+            );
+
+            if (matches.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-8 text-center text-amber-400 font-mono text-sm border border-amber-500/20">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 block"></i>
+                        No routes found matching "${query}". Try another city or route code.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="text-xs font-mono text-slate-400 mb-2">Found ${matches.length} matching journey(s):</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${matches.map(r => `
+                        <div class="glass-panel p-4 rounded-xl border border-cyan-500/30 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-mono text-cyan-400 font-bold">${r.route_id}</span>
+                                <h4 class="font-bold text-white">${r.departure_city} ➔ ${r.destination_city}</h4>
+                                <p class="text-xs text-slate-400">Depart: ${r.departure_time} • Fare: Rs. ${r.ticket_price}</p>
+                                <span class="text-[11px] font-mono text-emerald-400">${r.available_seats} seats available</span>
+                            </div>
+                            <button onclick="selectRouteForBooking('${r.route_id}')" class="px-4 py-2 bg-cyan-500 text-black text-xs font-bold rounded-lg hover:bg-cyan-400">
+                                Book Now
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Render Capacity Cards (Feature 8)
+        function renderCapacityCards() {
+            const container = document.getElementById('capacityCardList');
+            container.innerHTML = routes.map(r => {
+                const booked = r.total_seats - r.available_seats;
+                const percentage = Math.round((booked / r.total_seats) * 100);
+                const status = r.available_seats === 0 ? "Fully Booked" : (r.available_seats === r.total_seats ? "Available" : "Partially Booked");
+
+                return `
+                <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-mono text-cyan-400 font-bold">${r.route_id}</span>
+                            <h4 class="text-base font-bold text-white">${r.departure_city} ➔ ${r.destination_city}</h4>
+                            <span class="text-xs text-slate-400">${r.departure_time}</span>
+                        </div>
+                        <span class="text-xs font-mono px-2.5 py-0.5 rounded-full ${status === 'Available' ? 'bg-emerald-500/10 text-emerald-400' : (status === 'Fully Booked' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400')}">
+                            ${status}
+                        </span>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs font-mono">
+                            <span class="text-slate-400">Seat Utilization</span>
+                            <span class="text-white font-bold">${percentage}%</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-center text-xs font-mono pt-2 border-t border-white/5">
+                        <div class="bg-slate-900/60 p-2 rounded-lg">
+                            <span class="text-[10px] text-slate-500 block">AVAILABLE</span>
+                            <span class="text-emerald-400 font-bold text-sm">${r.available_seats} Seats</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded-lg">
+                            <span class="text-[10px] text-slate-500 block">TOTAL CAPACITY</span>
+                            <span class="text-white font-bold text-sm">${r.total_seats} Seats</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Render City Schedules (Feature 10: Nested City Groupings)
+        function renderCitySchedules() {
+            const container = document.getElementById('citySchedulesContainer');
+            container.innerHTML = SUPPORTED_CITIES.map(city => {
+                const departures = routes.filter(r => r.departure_city.toLowerCase() === city.toLowerCase());
+                
+                return `
+                <div class="glass-panel p-5 rounded-2xl border border-white/5 space-y-3">
+                    <div class="flex items-center gap-2 text-base font-bold text-white border-b border-white/5 pb-2">
+                        <i class="fa-solid fa-location-dot text-cyan-400"></i>
+                        <span>Departures from ${city}</span>
+                        <span class="text-xs font-mono text-slate-500 ml-auto">(${departures.length} Services)</span>
+                    </div>
+
+                    ${departures.length > 0 ? `
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            ${departures.map(d => `
+                                <div class="p-3 bg-slate-900/70 rounded-xl border border-white/5 flex items-center justify-between">
+                                    <div>
+                                        <div class="text-xs font-mono text-cyan-400 font-bold">${d.route_id} ➔ ${d.destination_city}</div>
+                                        <div class="text-xs text-slate-400">Time: <span class="text-white">${d.departure_time}</span></div>
+                                    </div>
+                                    <div class="text-right font-mono text-xs">
+                                        <div class="text-emerald-400">${d.available_seats} Seats Left</div>
+                                        <div class="text-slate-400">Rs. ${d.ticket_price}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <p class="text-xs font-mono text-slate-500 italic">No scheduled departures from this terminal.</p>
+                    `}
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Render Executive Analytics (Feature 9 & BR-12)
+        function renderAnalytics() {
+            const totalCreated = bookings.length;
+            const confirmedBookings = bookings.filter(b => b.status === "Confirmed");
+            const cancelledCount = bookings.filter(b => b.status === "Cancelled").length;
+            
+            const reservedSeats = confirmedBookings.reduce((sum, b) => sum + b.seats, 0);
+            // BR-12: Sum Confirmed records only, exclude cancelled bookings
+            const confirmedRevenue = confirmedBookings.reduce((sum, b) => sum + b.total_fare, 0);
+            const fullyBookedRoutes = routes.filter(r => r.available_seats === 0).length;
+
+            document.getElementById('kpiTotalCreated').innerText = totalCreated;
+            document.getElementById('kpiConfirmed').innerText = confirmedBookings.length;
+            document.getElementById('kpiCancelled').innerText = cancelledCount;
+            document.getElementById('kpiReservedSeats').innerText = reservedSeats;
+            document.getElementById('kpiRevenue').innerText = `Rs. ${confirmedRevenue.toLocaleString()}`;
+            document.getElementById('kpiFullyBooked').innerText = fullyBookedRoutes;
+
+            // Revenue Share By Route
+            const breakdownContainer = document.getElementById('revenueBreakdownBars');
+            if (confirmedRevenue === 0) {
+                breakdownContainer.innerHTML = `<div class="text-xs font-mono text-slate-500 py-3">No confirmed revenue accumulated yet.</div>`;
+                return;
+            }
+
+            breakdownContainer.innerHTML = routes.map(r => {
+                const routeRevenue = confirmedBookings
+                    .filter(b => b.route_id === r.route_id)
+                    .reduce((sum, b) => sum + b.total_fare, 0);
+                const pct = confirmedRevenue > 0 ? Math.round((routeRevenue / confirmedRevenue) * 100) : 0;
+
+                return `
+                <div class="space-y-1 font-mono text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-slate-300 font-bold">${r.route_id} (${r.departure_city} ➔ ${r.destination_city})</span>
+                        <span class="text-cyan-400">Rs. ${routeRevenue.toLocaleString()} (${pct}%)</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+                        <div class="h-full bg-cyan-400 rounded-full" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Top Status Header Stats
+        function updateTopStats() {
+            const totalCap = routes.reduce((sum, r) => sum + r.available_seats, 0);
+            document.getElementById('topCapacity').innerText = `${totalCap} Seats Avail`;
+        }
+
+        // Toast Notification System
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const isErr = type === "error";
+            const borderCol = isErr ? "border-red-500/50 bg-red-950/80 text-red-200" : "border-emerald-500/50 bg-emerald-950/80 text-emerald-200";
+            const icon = isErr ? "fa-circle-xmark text-red-400" : "fa-circle-check text-emerald-400";
+
+            toast.className = `p-4 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-3 text-xs font-mono transition-all transform translate-y-4 opacity-0 pointer-events-auto ${borderCol}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
